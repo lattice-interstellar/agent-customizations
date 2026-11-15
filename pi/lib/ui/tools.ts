@@ -11,7 +11,7 @@ import { createRequire } from "node:module";
 import { realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
-import { cleanSummary, commandSignal, failureTail, pathSignal, unstyled, type Paint } from "./tool-signal.ts";
+import { cleanSummary, commandSignal, failureSummary, pathSignal, unstyled, type Paint } from "./tool-signal.ts";
 
 // Pi loads personal extensions through symlinks. Resolve parser dependencies
 // from this checkout, not from the user's ~/.pi/agent directory.
@@ -116,9 +116,16 @@ export function toolSummary(name: string, args: Record<string, unknown>, failed:
 
 function summaryHeader(tool: ToolComponent, width: number, theme: Theme): string {
 	const failed = !!tool.result?.isError;
-	const paint: Paint = (tone, text) => theme.fg(failed ? "error" : tone, text);
-	return truncateToWidth(toolSummary(tool.toolName ?? "tool", tool.args ?? {}, failed, width,
-		text => theme.fg(failed ? "error" : "accent", text), paint), width);
+	const paint: Paint = (tone, text) => theme.fg(tone, text);
+	const diagnostic = failed ? failureSummary(tool.result!) : "";
+	// Reserve space for both the attempted action and its diagnostic.
+	const errorWidth = failed && width >= 24 ? Math.min(60, Math.floor(width / 2), visibleWidth(diagnostic)) : 0;
+	const actionWidth = width - (errorWidth ? errorWidth + 3 : 0);
+	let action = truncateToWidth(toolSummary(tool.toolName ?? "tool", tool.args ?? {}, false, actionWidth,
+		text => theme.fg("accent", text), paint), actionWidth);
+	if (failed) action = action.replace("›", theme.fg("error", "✗"));
+	return truncateToWidth(action + (errorWidth
+		? theme.fg("dim", " · ") + theme.fg("error", truncateToWidth(diagnostic, errorWidth)) : ""), width);
 }
 
 /** The argument that streams in: what a pending tool is about to run or write. */
@@ -257,15 +264,8 @@ function patchToolHeight(): void {
 		if (width <= 0) return [];
 		const theme = currentTheme!();
 		const header = summaryHeader(this, width, theme);
-		// Quiet successes; failures keep a bounded, literal output tail.
-		if (!this.expanded) {
-			if (!this.result?.isError) return [header];
-			const { lines, omitted } = failureTail(this.result);
-			const preview = lines.length ? lines : ["No text output; expand for details."];
-			return [header,
-				...(omitted ? [branchRow("│", theme.fg("dim", `… ${omitted} earlier lines · expand heading for details`), width, theme)] : []),
-				...preview.map((line, index) => branchRow(index === preview.length - 1 ? "└" : "│", theme.fg("error", line), width, theme))];
-		}
+		// All completed calls stay one row until explicitly expanded.
+		if (!this.expanded) return [header];
 		const state = disclosure(this);
 		// Never slice terminal image escape sequences. Preview text only; full
 		// disclosure restores native image rendering intact.

@@ -112,7 +112,7 @@ Makes tool activity secondary to the assistant's prose while preserving access t
 - image output stays hidden until `show all`, so image escape sequences are never clipped;
 - running tools use the three-row streaming view below;
 - tool titles and output use the theme's dim text color;
-- failed tools use an error-colored row with a failure marker;
+- failed tools stay on one row with normal action styling, a red ✗, and a short red diagnostic;
 - saved results and model context are unchanged.
 
 This uses a guarded component render/input patch because tool renderers alone do not control Pi's separately appended images. Completed tools own their header/control hit areas; previews use native text components without images, and full disclosure uses native rendering. Pending and running tools draw their own three rows instead (see below). Reloading does not stack the wrappers.
