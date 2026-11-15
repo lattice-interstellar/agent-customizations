@@ -9,7 +9,14 @@ This repository contains independent Claude Code and Pi customizations.
 
 Keep the primary checkout on `main`; use Worktrunk task worktrees under `.wt/`.
 
-## Pull request evidence
+## Pull request structure and evidence
+
+PR descriptions should roughly follow this structure; adapt it to the scope rather than adding empty sections:
+
+- **Overview**: briefly explain what the PR does and why.
+- **Visual Preview** (when relevant): show screenshots or videos of visual changes, attached using the method below.
+- **Changes**: summarize the meaningful implementation changes and validation performed.
+- **Notes** (optional): call out anything unusual or otherwise not covered above that is worth mentioning, such as limitations, migration requirements, or follow-up work.
 
 Attach screenshots and videos directly to the **PR body** using GitHub CLI's `--attach` flag, rather than committing evidence files or adding image-only comments:
 
