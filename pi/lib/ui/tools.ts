@@ -116,14 +116,14 @@ export function toolSummary(name: string, args: Record<string, unknown>, failed:
 
 function summaryHeader(tool: ToolComponent, width: number, theme: Theme): string {
 	const failed = !!tool.result?.isError;
-	const paint: Paint = (tone, text) => theme.fg(tone, text);
+	const paint: Paint = (tone, text) => failed && text.startsWith("›")
+		? theme.fg("error", "✗") + theme.fg(tone, text.slice(1)) : theme.fg(tone, text);
 	const diagnostic = failed ? failureSummary(tool.result!) : "";
 	// Reserve space for both the attempted action and its diagnostic.
 	const errorWidth = failed && width >= 24 ? Math.min(60, Math.floor(width / 2), visibleWidth(diagnostic)) : 0;
 	const actionWidth = width - (errorWidth ? errorWidth + 3 : 0);
-	let action = truncateToWidth(toolSummary(tool.toolName ?? "tool", tool.args ?? {}, false, actionWidth,
+	const action = truncateToWidth(toolSummary(tool.toolName ?? "tool", tool.args ?? {}, false, actionWidth,
 		text => theme.fg("accent", text), paint), actionWidth);
-	if (failed) action = action.replace("›", theme.fg("error", "✗"));
 	return truncateToWidth(action + (errorWidth
 		? theme.fg("dim", " · ") + theme.fg("error", truncateToWidth(diagnostic, errorWidth)) : ""), width);
 }

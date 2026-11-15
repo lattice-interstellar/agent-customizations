@@ -65,6 +65,7 @@ test("real tool rows retain semantic colors and bounded exceptions across themes
 		tool.setExpanded(false);
 		assert.equal(tool.render(80).length, 1);
 		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("error", "✗")));
+		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("dim", " read")), "failure marker preserves normal tool-name styling");
 		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("error", "last diagnostic")));
 		assert.equal(JSON.stringify(result), original);
 		tool.updateResult({ content: [], isError: true }, false);
