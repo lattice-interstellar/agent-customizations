@@ -62,11 +62,13 @@ export function commandSignal(command: string, home: string, markHome: (text: st
 	return out.join("").trim();
 }
 
-/** Text-only tail. Never execute native/image renderers or mutate the result. */
-export function failureTail(result: { content?: { type: string; text?: string }[] }): { lines: string[]; omitted: number } {
+/** Text-only diagnostic; prefer explicit errors over progress logs and stack frames. */
+export function failureSummary(result: { content?: { type: string; text?: string }[] }): string {
 	const lines = (result.content ?? []).filter(part => part.type === "text" && typeof part.text === "string")
 		.flatMap(part => stripTerminalSequences(part.text!).split(/\r?\n/))
 		.map(line => line.replace(/[\x00-\x1f\x7f-\x9f]/g, " ").trimEnd())
 		.filter(line => line.trim());
-	return { lines: lines.slice(-2), omitted: Math.max(0, lines.length - 2) };
+	const diagnostic = lines.find(line => /\b(?:ENOENT|EACCES|EPERM|ECONNREFUSED|ETIMEDOUT)\b|(?:^|\s)(?:\w*Error:|error:|fatal:)|permission denied|not found|no such file|timed out|aborted|could not find/i.test(line))
+		?? lines.filter(line => !/^\s*at\s/.test(line)).at(-1);
+	return diagnostic ? cleanSummary(diagnostic) : "failed (no text output)";
 }

@@ -40,11 +40,10 @@ test("completed tools are one row, with native details and accurate mouse expans
 			tool.setExpanded(false);
 			assert.equal(tool.render(80).length, 1);
 			tool.updateResult({ ...result, isError: true }, false);
-			assert.match(stripTerminalSequences(tool.render(80)[0]), /^✗ read.*failed$/);
+			assert.match(stripTerminalSequences(tool.render(80)[0]), /^✗ read.*line three$/);
 			// Image components must not bypass the summary path.
 			tool.imageComponents = [{ render: () => ["image row", "image row"] }];
-			assert.equal(tool.render(80).length, 4, "failure preview includes omission notice and two output lines, not images");
-			assert.deepEqual(tool.render(80).map(stripTerminalSequences).slice(-2), ["  │ line two", "  └ line three"]);
+			assert.equal(tool.render(80).length, 1, "failures stay collapsed, without rendering images");
 			assert.equal(result.content[0].text, "line one\nline two\nline three");
 		}
 	}

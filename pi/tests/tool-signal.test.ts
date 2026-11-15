@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { jiti, themeModule, tuiModule } from "./pi-runtime.ts";
 
-const { commandSignal, pathSignal, failureTail } = await jiti.import("../lib/ui/tool-signal.ts");
+const { commandSignal, pathSignal, failureSummary } = await jiti.import("../lib/ui/tool-signal.ts");
 const { toolSummary, default: extension } = await jiti.import("../lib/ui/tools.ts");
 const { ToolExecutionComponent } = await jiti.import("@earendil-works/pi-coding-agent");
 const { stripTerminalSequences, visibleWidth } = tuiModule;
@@ -34,8 +34,9 @@ test("ambiguous shell syntax falls back instead of claiming to parse it", () => 
 });
 
 test("failure tails are literal, text-only, sanitized, and bounded", () => {
-	assert.deepEqual(failureTail({ content: [{ type: "text", text: "first\n\n\u001b[31msecond\u001b[0m\nthird\tline\n" }, { type: "image", text: "not text" }] }), { lines: ["second", "third line"], omitted: 1 });
-	assert.deepEqual(failureTail({}), { lines: [], omitted: 0 });
+	assert.equal(failureSummary({ content: [{ type: "text", text: "first\n\n\u001b[31msecond\u001b[0m\nthird\tline\n" }, { type: "image", text: "not text" }] }), "third line");
+	assert.equal(failureSummary({}), "failed (no text output)");
+	assert.equal(failureSummary({ content: [{ type: "text", text: "working\nError: permission denied\n    at run (a.ts:1)\nCommand exited with code 1" }] }), "Error: permission denied");
 });
 
 test("real tool rows retain semantic colors and bounded exceptions across themes and widths", () => {
@@ -53,21 +54,24 @@ test("real tool rows retain semantic colors and bounded exceptions across themes
 		const original = JSON.stringify(result);
 		for (const width of [0, 1, 2, 3, 4, 8, 20, 80]) {
 			const lines = tool.render(width);
-			assert.ok(lines.length <= 4);
+			assert.equal(lines.length, width ? 1 : 0);
 			assert.ok(lines.every(line => visibleWidth(line) <= width), `width ${width}`);
 		}
-		assert.match(tool.render(80).map(stripTerminalSequences).join("\n"), /2 earlier lines/);
-		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("error", "café.ts")));
+		assert.match(stripTerminalSequences(tool.render(80)[0]), /last diagnostic/);
+		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("text", "café.ts")));
 		assert.equal(tool.handleMouse({ type: "click", button: "left", x: 0, y: 2 }), undefined, "body remains selectable");
 		tool.handleMouse({ type: "click", button: "left", x: 0, y: 0 });
 		assert.match(tool.render(80).map(stripTerminalSequences).join("\n"), /first/);
 		tool.setExpanded(false);
-		assert.equal(tool.render(80).length, 4);
+		assert.equal(tool.render(80).length, 1);
+		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("error", "✗")));
+		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("dim", " read")), "failure marker preserves normal tool-name styling");
+		assert.ok(tool.render(80)[0].includes(themeModule.theme.fg("error", "last diagnostic")));
 		assert.equal(JSON.stringify(result), original);
 		tool.updateResult({ content: [], isError: true }, false);
-		assert.match(tool.render(80).map(stripTerminalSequences).join("\n"), /No text output/);
+		assert.match(tool.render(80).map(stripTerminalSequences).join("\n"), /no text output/);
 		tool.updateResult({ content: [{ type: "text", text: "Operation aborted" }], isError: true }, false);
-		assert.equal(tool.render(80).length, 2);
+		assert.equal(tool.render(80).length, 1);
 		assert.match(tool.render(80).map(stripTerminalSequences).join("\n"), /Operation aborted/);
 		tool.updateResult({ content: [{ type: "text", text: "error in quoted sample; successful result" }], isError: false }, false);
 		assert.equal(tool.render(80).length, 1, "status comes from isError, never text heuristics");
