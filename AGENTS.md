@@ -9,6 +9,20 @@ This repository contains independent Claude Code and Pi customizations.
 
 Keep the primary checkout on `main`; use Worktrunk task worktrees under `.wt/`.
 
+## Pull request evidence
+
+Attach screenshots and videos directly to the **PR body** using GitHub CLI's `--attach` flag, rather than committing evidence files or adding image-only comments:
+
+```sh
+gh pr edit <number> \
+  --attach '/absolute/path/dark.png#Dark theme: collapsed and expanded tool errors' \
+  --attach '/absolute/path/light.png#Light theme: collapsed and expanded tool errors'
+```
+
+Without a body flag, this preserves the existing PR body and appends the uploaded attachments. Repeat `--attach` for multiple files; text after `#` supplies image alt text. For placement within a section, use `--body-file` with local image references and matching `--attach` paths; the CLI rewrites those references to uploaded asset URLs. Verify the result with `gh pr view <number> --json body --jq .body`.
+
+Describe what the evidence shows and distinguish live application captures from renderer fixtures or mockups. Keep evidence files out of Git unless they are intentionally maintained documentation or test assets.
+
 ## Migration boundary
 
 Do not deploy or change installed Claude/Pi configuration without explicit approval. The original repositories and existing installations are intentionally left in place. Preserve plugin versions and the Pi package identity during repository consolidation.
